@@ -16,12 +16,10 @@ GI_VLA/
 │   ├── comparisons/       # Comparison models
 │   ├── annotation/        # Annotation preparation and review tools
 │   ├── configs/           # Model and experiment configurations
-│   ├── pyproject.toml
-│   └── README.md
+│   └── pyproject.toml
 ├── aloha/
 │   ├── record_aloha_with_knob.py
-│   ├── run_inference_aloha_with_knob.py
-│   └── README.md
+│   └── run_inference_aloha_with_knob.py
 └── LICENSE
 ```
 
