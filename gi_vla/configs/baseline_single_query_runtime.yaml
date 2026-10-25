@@ -1,0 +1,81 @@
+schema_version: 1
+kind: groot_n17_e03_polyp_online_eval_bundle
+
+base_policy:
+  repo_id: Jason-Doldol-Research/task1_5_100_groot_n17_relact_005000
+  revision: efbfbb0b4d13bf482734ead3d77d1ad2ceceac1b
+  model_filename: model.safetensors
+  model_bytes: 12576215296
+  model_sha256: b3c2053f6918d6d7223407eff30dfdfcde3335fb39936c160637e29ab8db922f
+  lerobot_commit: 7e241bd630a3719a56157a497ce5d08f244784f1
+  action_chunk_size: 40
+  action_dim: 16
+  use_relative_actions: true
+
+processor:
+  directory: processor
+  upstream_repo: nvidia/Cosmos-Reason2-2B
+  upstream_revision: 9ce19a195e423419c349abfc86fd07178b230561
+  files_sha256:
+    config.json: bec4b3d446efa05807365c9e1cec03ac590836879d02f3a6da879971154bdd3b
+    merges.txt: 599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3
+    preprocessor_config.json: 27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516
+    tokenizer.json: a5d85b6dcc535e6b93115a9ef287e6132fdbf30270da6218194ba742261173c7
+    tokenizer_config.json: c2da771801886ad9ae98181793ffd3dfb7f1af30f6f7c6a4e15d7dbba52e2399
+    video_preprocessor_config.json: 7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13
+    vocab.json: ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910
+
+detector:
+  filename: best.pt
+  sha256: 29bc5fac51d4a0f3ad7d8075706979b38626a857db67b49cc04e61671c1706a6
+  metadata_sha256: 8bb060b0be41f0264fd2d94dd1e78103d5aec50fad77d97e3d84fc4ba035a390
+  experiment_id: g_e03_mid_static_dense
+  feature_level: e03
+  feature_source: qwen3_vl_visual_block_11_output_pre_merger
+  camera_key: observation.images.cam_low
+  policy_camera_order:
+    - observation.images.cam_high
+    - observation.images.cam_low
+    - observation.images.cam_left_wrist
+    - observation.images.cam_right_wrist
+  threshold: 0.054931640625
+  dataset_revision: b0f4057ee10d19321454d70cfda40e570537b86c
+  training_manifest_sha256: 4760fac7c353710008575282b1635d8bd7e0fee08bedaf5c54241c478e32e161
+  training_cache_manifest_sha256: 9ee2857927adf2287f6b1d3d5657f24b26f47c7789569fe64d7f6732262d5e58
+  seed: 42
+  architecture:
+    type: one_query_detr
+    input_dim: 1024
+    hidden_dim: 256
+    decoder_layers: 3
+    attention_heads: 8
+    feedforward_dim: 1024
+    grid_size: [16, 16]
+    padded_rows: [0, 0]
+    dropout: 0.1
+
+event_rule:
+  status: provisional_validation_selected
+  name: kofn_12_15
+  hits_required: 12
+  window_size: 15
+  require_full_window: true
+  cadence_hz: 30.0
+  bbox_iou_stability: null
+  selection_split: Task1 validation episodes 150-169
+  internal_test_used_for_selection: false
+  validation_negative_episodes: 20
+  validation_false_trigger_episodes: 2
+  validation_false_bursts: 3
+  task4_diagnostic_episodes: 5
+  task4_diagnostic_triggered: 5
+  task4_diagnostic_p95_delay_seconds: 0.4666666666666667
+
+runtime:
+  original_image_size: [640, 480]
+  detector_input_size: [256, 256]
+  color_order: rgb
+  detector_only_mode: fresh_backbone_forward
+  combined_mode: capture_e03_from_action_forward
+  detector_output_coordinates: original_pixel_top_left_xyxy
+  clinical_use: false

@@ -1,0 +1,92 @@
+schema_version: 1
+study_id: groot_n17_temporal_balanced_smoke_v1
+
+backbone:
+  checkpoint: Jason-Doldol-Research/task1_5_100_groot_n17_relact_005000
+  revision: efbfbb0b4d13bf482734ead3d77d1ad2ceceac1b
+  local_checkpoint: bbox_vla/raw_data/pretrained/task1_5_100_groot_n17_relact_005000
+  model_filename: model.safetensors
+  expected_model_bytes: 12576215296
+  expected_model_sha256: b3c2053f6918d6d7223407eff30dfdfcde3335fb39936c160637e29ab8db922f
+  policy_preprocessor_filename: policy_preprocessor.json
+  expected_policy_preprocessor_sha256: 1eb051f28bdaaf504c388b929622e438c11bde2f2fa8698622e90e80bce624f4
+  camera_key: observation.images.cam_low
+  policy_camera_order:
+    - observation.images.cam_high
+    - observation.images.cam_low
+    - observation.images.cam_left_wrist
+    - observation.images.cam_right_wrist
+  timestep_index: -1
+  precision: bf16
+
+runtime:
+  transformers_version: 5.5.4
+  torch_compile: false
+
+data:
+  dataset_root: bbox_vla/raw_data/task1_5_all
+  dataset_repo: Jason-Doldol-Research/task1_5_all
+  dataset_revision: b0f4057ee10d19321454d70cfda40e570537b86c
+  temporal_frame_manifest: bbox_vla/annotation/candidate_c/temporal_frame_manifest.jsonl
+  clip_manifest: bbox_vla/annotation/candidate_c/clip_manifest.jsonl
+  evaluation_frame_manifest: bbox_vla/annotation/candidate_c/evaluation_frame_manifest.jsonl
+  prompt_seed: 42
+  ranking_salt: groot-temporal-smoke-v1
+  expected_full_clip_counts:
+    task4_positive_anchor: 3297
+    task1_hard_negative_anchor: 2191
+    task1_random_pure_negative: 4125
+    task4_pure_negative: 258
+  expected_full_prompt_counts:
+    actual: 4935
+    counterfactual: 2468
+    neutral: 2468
+  expected_full_prompt_switches: 824
+
+cache:
+  root: bbox_vla/workspace/groot_n17_temporal/cache
+  schema_sha256: ed0d6c9edd006680396efcc31455bdd5e74b1e43b413ecdb69b8c28d21df57ce
+  schema:
+    schema_version: 1
+    model_revision: efbfbb0b4d13bf482734ead3d77d1ad2ceceac1b
+    e03_shape: [256, 1024]
+    conditioning_shape: [64, 2048]
+    float_dtype: torch.bfloat16
+    e03_source_hook: qwen3_vl_visual_block_11_pre_merger
+    conditioning_source_hook: action_head_vlln_then_vl_self_attention_output
+
+selection:
+  selected_clips: 64
+  frames_per_clip: 4
+  selected_frames: 256
+  stratum_quotas:
+    task4_positive_anchor/prompt_switch/any: 4
+    task4_positive_anchor/non_switch/actual: 6
+    task4_positive_anchor/non_switch/counterfactual: 2
+    task4_positive_anchor/non_switch/neutral: 4
+    task1_hard_negative_anchor/non_switch/actual: 8
+    task1_hard_negative_anchor/non_switch/counterfactual: 4
+    task1_hard_negative_anchor/non_switch/neutral: 4
+    task1_random_pure_negative/non_switch/actual: 8
+    task1_random_pure_negative/non_switch/counterfactual: 4
+    task1_random_pure_negative/non_switch/neutral: 4
+    task4_pure_negative/non_switch/actual: 8
+    task4_pure_negative/non_switch/counterfactual: 4
+    task4_pure_negative/non_switch/neutral: 4
+
+training:
+  seed: 42
+  max_steps: 20
+  feature_modes:
+    - mid_only
+    - dit_conditioned
+  clip_length: 4
+  effective_batch_clips: 16
+  precision: bf16
+  learning_rate: 3.0e-5
+  weight_decay: 1.0e-4
+  bptt_within_clip: true
+  detach_state_at_clip_boundary: true
+
+workspace:
+  root: bbox_vla/workspace/groot_n17_temporal

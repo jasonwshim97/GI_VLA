@@ -1,102 +1,147 @@
 # GI-VLA
 
-This repository provides the high-level data acquisition and policy inference
-scripts used in the GI-VLA experiments.
+## 1. Overview
 
-## Released Files
+GI-VLA provides the polyp detection code and ALOHA demonstration recording and policy inference scripts used in our endoscopic robotics research.
 
-### `record_aloha_with_knob.py`
+| Directory | Contents |
+| --- | --- |
+| [`gi_vla/`](gi_vla/) | Polyp detection using shared GR00T visual features, temporal extensions, comparison models, and annotation tools |
+| [`aloha/`](aloha/) | Demonstration recording and policy inference with the ALOHA dual-arm robot and endoscope knobs |
 
-Implements the high-level demonstration recording pipeline for an ALOHA system
-with two additional knob dimensions. When `--use_knob=true`, the script records
-robot observations, camera observations, task descriptions, and 16-dimensional
-actions composed of the 14-dimensional ALOHA action and two knob values.
+```text
+GI_VLA/
+├── gi_vla/
+│   ├── endo_bbox_vla/     # Polyp detection models, training, evaluation, and inference
+│   ├── comparisons/       # Comparison models
+│   ├── annotation/        # Annotation preparation and review tools
+│   ├── configs/           # Model and experiment configurations
+│   ├── pyproject.toml
+│   └── README.md
+├── aloha/
+│   ├── record_aloha_with_knob.py
+│   ├── run_inference_aloha_with_knob.py
+│   └── README.md
+└── LICENSE
+```
 
-This script is based on Hugging Face LeRobot v0.5.1.
+## 2. gi_vla: Polyp Detection
 
-### `run_inference_aloha_with_knob.py`
+### Model Overview
 
-Implements the high-level policy inference and evaluation pipeline for the same
-16-dimensional ALOHA and knob action space. It loads a policy checkpoint and a
-LeRobot dataset from paths supplied at runtime, executes episodic inference,
-and can save videos, action traces, and evaluation datasets.
+Ours reuses the visual features computed by a frozen GR00T N1.7 policy during action generation. It extracts the `16 × 16 × 1024` features corresponding to the endoscopic camera, `cam_low`, from the output of Qwen3-VL visual block 11. A detection head then predicts polyp presence probabilities and bounding boxes.
 
-This script is based on Hugging Face LeRobot v0.6.1.
+The detection head initializes four spatial queries from a dense center heatmap and refines them through three Transformer decoder layers. GR00T remains frozen, and only approximately 3.56M detection parameters are trained. Sharing features from the same action forward eliminates an additional vision-encoder pass for detection. Detection outputs are not fed back into the VLA action pathway.
 
-## Code Scope
+### Code Organization
 
-This repository releases only the high-level data acquisition and inference
-logic used in our experiments. It does not include the following
-hardware-specific components:
+| File or directory | Responsibility |
+| --- | --- |
+| `endo_bbox_vla/config.py` | Paper model identifiers, configuration contracts, and external path resolution |
+| `endo_bbox_vla/data.py` | Datasets, manifests, preprocessing, sampling, and clip construction |
+| `endo_bbox_vla/cache.py` | Frozen feature-cache storage, loading, and integrity checks |
+| `endo_bbox_vla/network.py` | Trainable detection heads and temporal query structures |
+| `endo_bbox_vla/model.py` | Frozen backbone feature extraction and model construction |
+| `endo_bbox_vla/loss.py` | Static and temporal detection losses |
+| `endo_bbox_vla/train.py` | Training, continued training, and checkpoint resume |
+| `endo_bbox_vla/metrics.py` | IoU, AP, recall, false-positive metrics, and threshold selection |
+| `endo_bbox_vla/evaluate.py` | Validation selection and evaluation with fixed thresholds |
+| `endo_bbox_vla/inference.py` | Same-forward action and detection inference, temporal state, and event rules |
+| `endo_bbox_vla/utils.py` | Shared I/O, hashing, and random-seed utilities |
+| `comparisons/` | EndoVLA-inspired SFT and standalone detector comparisons |
+| `annotation/` | Annotation preparation and web-based review tools |
+
+Use `endo_bbox_vla.model.build_detector("ours")` to construct the detection head programmatically. Model weights, policy preprocessing, and the physical robot environment must be provided separately.
+
+### Installation
+
+Clone LeRobot from its [original GitHub repository](https://github.com/huggingface/lerobot) into sibling directories alongside `GI_VLA/`. Use v0.6.1 for polyp detection and policy inference, and v0.5.1 for ALOHA demonstration recording.
+
+```text
+workspace/
+├── GI_VLA/
+├── lerobot_v061/    # Polyp detection and policy inference
+└── lerobot_v051/    # ALOHA demonstration recording
+```
+
+```bash
+# Run from the GI_VLA repository root
+git clone --branch v0.6.1 https://github.com/huggingface/lerobot.git ../lerobot_v061
+git clone --branch v0.5.1 https://github.com/huggingface/lerobot.git ../lerobot_v051
+```
+
+This layout is an example. If you clone LeRobot elsewhere, update the installation paths below and the `PYTHONPATH` values in the ALOHA examples accordingly. The ALOHA knob and hardware backends must be prepared separately.
+
+Create a Python 3.12 environment and install the packages from the repository root:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e "../lerobot_v061[groot]"
+python -m pip install -e ./gi_vla
+```
+
+Actual GR00T execution requires a compatible LeRobot/Transformers environment and saved policy processors. EndoVLA-inspired SFT was performed in a separate Transformers 4.49 environment. These installation commands do not download backbone weights or research datasets.
+
+### Training and Evaluation Examples
+
+After installation, run the following examples from `gi_vla/`:
+
+```bash
+cd gi_vla
+
+# First training stage for the final model
+python -m endo_bbox_vla.train static \
+  --config configs/ours.yaml --stage spatial_queries --device cuda
+
+# Hard-positive continued training from the first-stage checkpoint
+python -m endo_bbox_vla.train static \
+  --config configs/ours.yaml --stage hard_positive --device cuda
+```
+
+Both commands require the external feature caches and manifests. Temporal training additionally takes the completed full training plan, frame manifest, feature cache, and output path. Inspect the available arguments with:
+
+```bash
+python -m endo_bbox_vla.train temporal --help
+python -m endo_bbox_vla.evaluate --help
+python -m comparisons.detectors --help
+python -m comparisons.ar_train --help
+python -m annotation.prepare --help
+python -m annotation.review --help
+```
+
+## 3. aloha: Demonstration Recording and Policy Inference
+
+`aloha` contains high-level scripts for demonstration recording and policy execution with the ALOHA dual-arm robot. With `--use_knob=true`, the scripts use a **16-dimensional action space** comprising the 14-dimensional ALOHA action and two endoscope knob dimensions.
+
+### Scripts and Software Environments
+
+| File | Main functionality | Base LeRobot version |
+| --- | --- | --- |
+| [`record_aloha_with_knob.py`](aloha/record_aloha_with_knob.py) | Records robot and camera observations, task descriptions, and demonstration actions | v0.5.1 |
+| [`run_inference_aloha_with_knob.py`](aloha/run_inference_aloha_with_knob.py) | Loads a policy and dataset, runs episodic inference, and saves videos, action traces, and evaluation datasets | v0.6.1 |
+
+The two scripts were developed in different LeRobot environments. Use separate environments for recording and inference until the recording script has been ported to and validated against v0.6.1.
+
+### Hardware Configuration
+
+The following hardware-specific components are not included in the released scripts:
 
 - Low-level ALOHA hardware drivers
-- Knob motor drivers
-- Dynamixel communication code
+- Knob motor drivers and Dynamixel communication code
 - Robot and camera calibration files
 - Camera serial numbers and device paths
 - Complete lab-specific hardware configurations and comprehensive safety systems
 
-The released scripts are therefore not a complete standalone software package.
-Running them on a physical robot requires a compatible LeRobot hardware backend
-and appropriate hardware configuration.
+Running on physical hardware requires a compatible LeRobot hardware backend that provides these components. The inference script's initial poses, motion profiles, task-specific initial-pose groupings, and right-shoulder action limits must also be reviewed for the target robot and dataset.
 
-The inference script retains experiment-specific high-level defaults, including
-initial-pose behavior, motion-profile values, task-specific initial-pose
-groupings, and a right-shoulder action clamp. These defaults must be reviewed,
-adapted, or removed before the script is used with another robot or dataset.
+### Demonstration Recording Example
 
-## Software Versions
-
-The two scripts were developed in different LeRobot environments:
-
-| Script | LeRobot version |
-| --- | --- |
-| `record_aloha_with_knob.py` | v0.5.1 |
-| `run_inference_aloha_with_knob.py` | v0.6.1 |
-
-Use separate environments for recording and inference unless the recording
-script has been explicitly ported and validated against LeRobot v0.6.1.
-
-## Models and Datasets
-
-Model weights and datasets are not included in this repository. Their locations
-must be supplied through command-line arguments.
-
-The recording script accepts the destination dataset repository and local
-storage path through:
-
-```text
---dataset.repo_id=<DATASET_REPOSITORY_ID>
---dataset.root=<LOCAL_DATASET_PATH>
-```
-
-The inference script accepts the policy and source dataset through:
-
-```text
---policy.path=<MODEL_REPOSITORY_ID_OR_LOCAL_PATH>
---dataset_repo_id=<DATASET_REPOSITORY_ID>
---dataset_root=<LOCAL_DATASET_PATH>
-```
-
-If inference results are saved as a LeRobot dataset, an output repository ID
-must also be provided:
-
-```text
---save_dataset=true
---output_dataset_repo_id=<OUTPUT_DATASET_REPOSITORY_ID>
-```
-
-## Example Usage
-
-The following commands are templates. Install the required LeRobot version or
-set `PYTHONPATH` to a compatible LeRobot source tree that also contains the
-required hardware backend. Replace all example paths and repository IDs with
-values appropriate for your system.
-
-### Data acquisition
+The following template starts from the repository root. Replace the LeRobot path, device configuration files, and repository IDs with values for your environment.
 
 ```bash
-export PYTHONPATH=/path/to/lerobot-v0.5.1/src
+cd aloha
+export PYTHONPATH="$(pwd)/../../lerobot_v051/src"
 
 python record_aloha_with_knob.py \
   --robot.type=aloha_follower_with_knob \
@@ -116,10 +161,15 @@ python record_aloha_with_knob.py \
   --use_knob=true
 ```
 
-### Policy inference
+`--dataset.repo_id` and `--dataset.root` specify the destination dataset repository ID and local storage path, respectively.
+
+### Policy Inference Example
+
+Start this example separately from the repository root. In the inference LeRobot environment, specify the policy checkpoint and reference dataset paths.
 
 ```bash
-export PYTHONPATH=/path/to/lerobot-v0.6.1/src
+cd aloha
+export PYTHONPATH="$(pwd)/../../lerobot_v061/src"
 
 python run_inference_aloha_with_knob.py \
   --robot.type=aloha_follower_with_knob \
@@ -139,34 +189,21 @@ python run_inference_aloha_with_knob.py \
   --output_dir=./inference_results
 ```
 
-## Safety
+`--policy.path` accepts a model repository ID or local checkpoint path. `--dataset_repo_id` and `--dataset_root` specify the reference dataset repository ID and local path.
 
-These scripts can command a physical robot. With `--sync_initial_pose=true`,
-which is the inference default, the robot can move to an initial pose derived
-from the source dataset before policy execution. Before execution:
+To save inference results as a LeRobot dataset, provide both arguments below:
 
-- Validate the observation and action ordering.
-- Confirm all joint, gripper, and knob limits for the target hardware.
-- Test policy outputs without enabling robot motion.
-- Keep an emergency stop available.
-- Operate the robot only under qualified supervision.
+```text
+--save_dataset=true
+--output_dataset_repo_id=YOUR_HF_ORG/YOUR_OUTPUT_DATASET
+```
+
+### Physical Robot Execution
+
+These scripts can move a physical robot. With the inference default `--sync_initial_pose=true`, the robot may move to an initial pose derived from the reference dataset before policy execution.
+
+- Verify observation and action dimensions and ordering.
+- Check the joint, gripper, and knob limits of the target hardware.
+- Inspect policy outputs before enabling robot motion.
+- Keep an emergency stop available and operate under qualified supervision.
 - Do not disable action safety limits without an independent safety review.
-
-The built-in action clamp covers only the configured right-shoulder joint. It
-is not a comprehensive robot safety system and does not replace hardware limits,
-collision avoidance, workspace validation, or an emergency stop.
-
-The authors are not responsible for damage or injury resulting from improper
-hardware configuration or unsafe operation.
-
-## Acknowledgements
-
-These files contain modified code derived from
-[Hugging Face LeRobot](https://github.com/huggingface/lerobot) and are
-distributed under the Apache License 2.0. See [`LICENSE`](LICENSE) for the
-license terms and third-party notices.
-
-## Citation
-
-If you use this code, please cite the corresponding GI-VLA paper. The complete
-bibliographic entry should be added here when the paper metadata is finalized.

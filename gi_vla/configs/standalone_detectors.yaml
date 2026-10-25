@@ -1,0 +1,71 @@
+schema_version: 1
+study_id: e03_separate_detector_efficiency_v1
+
+# Both specialist baselines consume the exact static-frame contract used by E03.
+source_e03_config: bbox_vla/detr/configs/groot_cross_backbone/e03_hr_abcd_v1.yaml
+source_e03_config_sha256: 5f432630ab3ab1542a2516351a639cd0789c7038de32c4b0a33bc3205ea42589
+
+data:
+  camera_key: observation.images.cam_low
+  input_size: [640, 480]
+  train_manifest_sha256: 4760fac7c353710008575282b1635d8bd7e0fee08bedaf5c54241c478e32e161
+  validation_manifest_sha256: 38c7737cf04f34b6b06da6963667448323236b14ff03c3610400524a0f4d6fbf
+  test_manifest_sha256: 26025455dfcd18cecc02b4881303ce6bd1809ef7df97381218ae485358d7ca97
+  expected_counts:
+    train: 5687
+    validation: 5086
+    test: 6292
+
+models:
+  faster_rcnn:
+    architecture: fasterrcnn_resnet50_fpn_v2
+    pretrained_source: torchvision COCO_V1
+    pretrained_sha256: dd69338a24b8d7381807e247652bdc356325bcbaf1cd3e092e00e0a1a58706bf
+    num_classes_including_background: 2
+    min_size: 480
+    max_size: 640
+    expected_total_parameters: 43256153
+    batch_size: 16
+    evaluation_batch_size: 16
+    gradient_accumulation: 1
+    backbone_learning_rate: 2.0e-5
+    head_learning_rate: 1.0e-4
+  detr_r50:
+    architecture: facebook/detr-resnet-50
+    revision: 1d5f47bd3bdd2c4bbfa585418ffe6da5028b4c0b
+    local_snapshot: /root/.cache/huggingface/hub/models--facebook--detr-resnet-50/snapshots/1d5f47bd3bdd2c4bbfa585418ffe6da5028b4c0b
+    model_sha256: 830f5e2eeaada8c8c8281779dcc8ab12833972eb8514ed0a35be6c1d4420ad81
+    config_sha256: e7bcf3992363f27717a863f14b193140ad2e41d4338ee012730e58a92cae17e6
+    preprocessor_sha256: 0673fea2a6d3cf92cdbab3c7426c0ecdf8a4729a2a4d5199033dcd66a2b8759b
+    num_labels: 1
+    num_queries: 100
+    expected_total_parameters: 41501638
+    batch_size: 16
+    evaluation_batch_size: 32
+    gradient_accumulation: 1
+    backbone_learning_rate: 1.0e-5
+    head_learning_rate: 1.0e-4
+    image_mean: [0.485, 0.456, 0.406]
+    image_std: [0.229, 0.224, 0.225]
+
+training:
+  seed: 42
+  epochs: 20
+  samples_per_epoch: 5687
+  sampler: scenario_episode_balanced
+  weight_decay: 1.0e-4
+  warmup_fraction: 0.05
+  gradient_clip_norm: 1.0
+  validate_every_epochs: 2
+  early_stopping_validation_patience: 4
+  num_workers: 8
+  bf16: true
+
+evaluation:
+  max_fp_per_100_per_negative_source: 5.0
+  detector_fps: 5.0
+  selection: maximize_mean_iou_then_ap50_95_under_each_source_fp5
+  test_name: internal_test
+
+workspace:
+  root: bbox_vla/workspace/e03_separate_detector_efficiency_v1

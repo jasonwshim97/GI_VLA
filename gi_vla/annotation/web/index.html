@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>e02/e03 GT Review</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>e02/e03 model-used GT review</h1>
+        <p>Clean source image + current annotation</p>
+      </div>
+      <div class="progress-wrap">
+        <div id="progress-text">Loading…</div>
+        <div class="progress-track"><div id="progress-bar"></div></div>
+      </div>
+    </header>
+
+    <section class="toolbar">
+      <label>Split
+        <select id="split-filter">
+          <option value="all">All</option>
+          <option value="train">Train</option>
+          <option value="validation">Validation</option>
+        </select>
+      </label>
+      <label>Status
+        <select id="status-filter">
+          <option value="unreviewed">Unreviewed</option>
+          <option value="all">All</option>
+          <option value="KEEP">KEEP</option>
+          <option value="FIX">FIX</option>
+          <option value="REMOVE">REMOVE</option>
+          <option value="interpolated">Interpolated hints</option>
+        </select>
+      </label>
+      <label>Batch
+        <select id="batch-filter"><option value="all">All</option></select>
+      </label>
+      <label class="search-label">Search
+        <input id="search" type="search" placeholder="QC index, episode, sample ID">
+      </label>
+      <button id="jump-unreviewed" class="secondary">Next unreviewed</button>
+    </section>
+
+    <main>
+      <section class="viewer-panel">
+        <div id="warning" class="warning hidden"></div>
+        <div class="canvas-shell">
+          <canvas id="review-canvas" width="640" height="480"></canvas>
+          <div id="loading" class="loading">Loading image…</div>
+        </div>
+        <div class="legend">
+          <span><i class="legend-current"></i> Current GT</span>
+          <span><i class="legend-fixed"></i> Corrected bbox</span>
+          <span>FIX: drag on image</span>
+        </div>
+      </section>
+
+      <aside>
+        <div class="item-nav">
+          <button id="previous" class="secondary">← Previous</button>
+          <span id="position">0 / 0</span>
+          <button id="next" class="secondary">Next →</button>
+        </div>
+
+        <dl id="metadata"></dl>
+
+        <div id="decision-badge" class="decision-badge unreviewed">UNREVIEWED</div>
+
+        <div class="actions">
+          <button id="keep" class="keep">KEEP <kbd>K</kbd></button>
+          <button id="fix-mode" class="fix">FIX / Draw <kbd>F</kbd></button>
+          <button id="remove" class="remove">REMOVE <kbd>R</kbd></button>
+          <button id="save-fix" class="save-fix hidden">Save FIX <kbd>Enter</kbd></button>
+          <button id="cancel-fix" class="secondary hidden">Cancel drawing <kbd>Esc</kbd></button>
+          <button id="clear" class="secondary">Clear decision <kbd>U</kbd></button>
+        </div>
+
+        <div class="bbox-fields">
+          <label>x1 <input id="x1" type="number" step="0.1"></label>
+          <label>y1 <input id="y1" type="number" step="0.1"></label>
+          <label>x2 <input id="x2" type="number" step="0.1"></label>
+          <label>y2 <input id="y2" type="number" step="0.1"></label>
+        </div>
+
+        <label class="notes-label">Notes
+          <textarea id="notes" rows="3" maxlength="2000"></textarea>
+        </label>
+
+        <div class="counts" id="counts"></div>
+        <button id="finalize" class="finalize" disabled>Mark entire review complete</button>
+        <div id="save-status" class="save-status"></div>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

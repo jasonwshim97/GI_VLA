@@ -1,0 +1,99 @@
+schema_version: 1
+study_id: groot_n17_e02_e03_qc_v1
+
+backbone:
+  checkpoint: Jason-Doldol-Research/task1_5_100_groot_n17_relact_005000
+  revision: efbfbb0b4d13bf482734ead3d77d1ad2ceceac1b
+  local_checkpoint: bbox_vla/raw_data/pretrained/task1_5_100_groot_n17_relact_005000
+  base_model: nvidia/GR00T-N1.7-3B
+  expected_model_bytes: 12576215296
+  camera_key: observation.images.cam_low
+  # This is the serialized checkpoint processor order, not dataset key order.
+  # The driver resolves the pack step at runtime and fails if it differs.
+  policy_camera_order:
+    - observation.images.cam_high
+    - observation.images.cam_low
+    - observation.images.cam_left_wrist
+    - observation.images.cam_right_wrist
+  timestep_index: -1
+  precision: bf16
+  taps:
+    g_e02_projected_static_dense:
+      level: e02
+      source: qwen3_vl_visual_merger_output_pre_language_model
+      expected_tokens: 64
+      expected_dim: 2048
+      expected_grid: [8, 8]
+    g_e03_mid_static_dense:
+      level: e03
+      source: qwen3_vl_visual_block_11_output_pre_merger
+      expected_tokens: 256
+      expected_dim: 1024
+      expected_grid: [16, 16]
+
+data:
+  dataset_root: bbox_vla/raw_data/task1_5_all
+  dataset_repo: Jason-Doldol-Research/task1_5_all
+  dataset_revision: b0f4057ee10d19321454d70cfda40e570537b86c
+  video_backend: pyav
+  frame_manifest: bbox_vla/annotation/candidate_c/frame_manifest.jsonl
+  provenance_audit: bbox_vla/annotation/candidate_c/provenance_audit.json
+  split: train
+  prompt_seed: 42
+  prompt_fractions:
+    actual: 0.50
+    counterfactual: 0.25
+    neutral: 0.25
+  expected_counts:
+    task4_positive: 3297
+    task4_confirmed_negative: 1106
+    task1_confirmed_negative: 2191
+    total: 6594
+  target_geometry: groot_n17_crop
+  original_size: [640, 480]
+  detector_size: [256, 256]
+  crop_size: [230, 230]
+
+cache:
+  dtype: bfloat16
+  capture_batch_size: 1
+  flush_every: 20
+  smoke_entries: 128
+  require_action_parity: true
+  require_backbone_only_feature_parity: true
+
+head:
+  kind: one_query_detr
+  hidden_dim: 256
+  decoder_layers: 3
+  attention_heads: 8
+  feedforward_dim: 1024
+  dropout: 0.1
+  padded_rows: [0, 0]
+
+training:
+  seed: 42
+  epochs: 50
+  batch_size: 64
+  num_workers: 8
+  learning_rate: 3.0e-5
+  weight_decay: 1.0e-4
+  warmup_fraction: 0.05
+  gradient_clip_norm: 1.0
+  loss:
+    presence: 1.0
+    l1: 5.0
+    giou: 2.0
+
+evaluation:
+  selection_views_root: bbox_vla/annotation/candidate_c/selection_views
+  max_false_positives_per_100_negative_frames: 5.0
+  encounter_hits: 4
+  encounter_window: 7
+  locked_test_used: false
+
+workspace:
+  root: bbox_vla/workspace/groot_n17_e02_e03
+  cache_dirname: cache
+  training_dirname: training
+  logs_dirname: logs

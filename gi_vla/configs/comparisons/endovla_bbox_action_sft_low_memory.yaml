@@ -1,0 +1,115 @@
+# Checkpoint-distinct 76 GiB fallback for the E03 four-camera SFT.
+# cam_low remains original 640x480 for bbox geometry; only auxiliary views are
+# deterministically downsampled by the dataset before Qwen processing.
+model:
+  type: qwen2_vl_ar
+  repo_id: Qwen/Qwen2-VL-7B-Instruct
+  revision: eed13092ef92e448dd6875b2a00151bd3f7db0ac
+  processor_revision: eed13092ef92e448dd6875b2a00151bd3f7db0ac
+  coordinate_convention: original_pixel_top_left_xywh
+  output_contract: grounded_continuous_action_v1
+  output_format: "Y [x,y,w,h] | A [a0,...,a15] OR N | A [a0,...,a15]"
+  camera_order:
+    - observation.images.cam_high
+    - observation.images.cam_low
+    - observation.images.cam_left_wrist
+    - observation.images.cam_right_wrist
+  camera_input_sizes:
+    observation.images.cam_high: [320, 240]
+    observation.images.cam_low: [640, 480]
+    observation.images.cam_left_wrist: [320, 240]
+    observation.images.cam_right_wrist: [320, 240]
+  target_camera: observation.images.cam_low
+  action:
+    key: action
+    dim: 16
+    dtype: float32
+    decimals: 6
+    feature_names:
+      - left_waist.pos
+      - left_shoulder.pos
+      - left_elbow.pos
+      - left_forearm_roll.pos
+      - left_wrist_angle.pos
+      - left_wrist_rotate.pos
+      - left_gripper.pos
+      - right_waist.pos
+      - right_shoulder.pos
+      - right_elbow.pos
+      - right_forearm_roll.pos
+      - right_wrist_angle.pos
+      - right_wrist_rotate.pos
+      - right_gripper.pos
+      - knob_ud.pos
+      - knob_lr.pos
+  freeze_vision_encoder: true
+  train_vision_projector: true
+  attention_implementation: sdpa
+  gradient_checkpointing: true
+  processor:
+    use_fast: false
+    # Allows 320x240 auxiliary images to remain downsampled; 640x480 cam_low
+    # still lies below max_pixels and therefore retains its source geometry.
+    min_pixels: 50176
+    max_pixels: 401408
+  lora:
+    rank: 16
+    alpha: 16
+    dropout: 0.0
+    bias: none
+    target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+data:
+  format: scenario_static_v1
+  source_study_config: bbox_vla/detr/configs/groot_cross_backbone/g_e02_e03_scenario_static_v1.yaml
+  source_study_config_sha256: eda6440e6198b0b5229945f2d061f6324eb701e15746c7e72d77ae9b2a22c538
+  protocol_id: scenario-static-v1
+  dataset_revision: b0f4057ee10d19321454d70cfda40e570537b86c
+  fold_id: scenario_static_v1
+  original_height: 480
+  original_width: 640
+  cache_root: bbox_vla/ar_qwen/artifacts/cache/e03_4cam_cont16_v1
+  cache_manifest: cache_manifest.json
+  cache_required: true
+
+training:
+  seed: 42
+  device: cuda
+  precision: bf16
+  epochs: 1
+  batch_size: 1
+  gradient_accumulation_steps: 2
+  num_workers: 4
+  learning_rate: 0.0002
+  optimizer: adamw
+  weight_decay: 0.01
+  schedule: linear
+  warmup_fraction: 0.0
+  max_grad_norm: 1.0
+  max_sequence_length: 2304
+  action_numeric_loss_weight: 0.1
+  balanced_sampling: true
+  save_steps: 250
+  log_steps: 10
+  peak_memory_limit_gib: 76.0
+  auxiliary_camera_fallback_size: [320, 240]
+  output_dir: bbox_vla/ar_qwen/artifacts/runs/qwen2vl_7b_ar_e03_4cam_cont16_sft_v1_76g_fallback/seed42
+  wandb:
+    enabled: false
+    entity: somestone
+    project: lerobot
+    group: bbox_vla_qwen_ar_e03_4cam_cont16_76g_fallback
+
+generation:
+  do_sample: false
+  num_beams: 1
+  max_new_tokens: 224
+  force_positive_bbox_candidate: true
+
+evaluation:
+  max_false_positives_per_100_negative_frames: 5.0
+  enforce_per_negative_source: true
+  threshold_grid_size: 1001
+  bootstrap_samples: 2000
+  bootstrap_seed: 42
+  latency_limit_ms: 66.7

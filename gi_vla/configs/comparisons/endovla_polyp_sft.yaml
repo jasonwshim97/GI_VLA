@@ -1,0 +1,81 @@
+model:
+  type: qwen2_vl_ar
+  repo_id: Qwen/Qwen2-VL-7B-Instruct
+  # Last upstream revision available before the EndoVLA release; immutable.
+  revision: eed13092ef92e448dd6875b2a00151bd3f7db0ac
+  processor_revision: eed13092ef92e448dd6875b2a00151bd3f7db0ac
+  coordinate_convention: original_pixel_top_left_xywh
+  output_format: "Y [x,y,w,h] | N"
+  freeze_vision_encoder: true
+  train_vision_projector: true
+  attention_implementation: sdpa
+  gradient_checkpointing: true
+  processor:
+    use_fast: false
+    min_pixels: 200704  # 256 * 28 * 28
+    max_pixels: 401408  # 512 * 28 * 28; includes native 640x480 area
+  lora:
+    rank: 16
+    alpha: 16
+    dropout: 0.0
+    bias: none
+    target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+data:
+  dataset_root: local_datasets/Task4_Polyp_1to8
+  annotations: bbox_vla/workspace/annotations/task4_polyp_v1/review-qa/task4-polyp-bbox-v1-approved
+  coco_root: bbox_vla/workspace/protocols/task4-polyp-primary-v2
+  logical_views: true
+  protocol_id: task4-polyp-primary-v2
+  protocol_manifest: protocol.json
+  dataset_revision: task4-polyp-bbox-v1-approved
+  approved_payload_sha256: d0386a8551edf869acc6c9e91e4089ade409a5a5e814db758c3d3690fd7c1e95
+  fold_id: primary_v2
+  train_coco: train.coco.json
+  calibration_coco: calibration.coco.json
+  negative_control_coco: negative_control.coco.json
+  validation_coco: validation.coco.json
+  test_coco: test.coco.json
+  manifest: manifest.jsonl
+  image_root: bbox_vla/workspace/annotations/task4_polyp_v1
+  original_height: 480
+  original_width: 640
+
+training:
+  seed: 42
+  device: cuda
+  precision: bf16
+  epochs: 1
+  batch_size: 2
+  gradient_accumulation_steps: 1
+  num_workers: 4
+  learning_rate: 0.0002
+  optimizer: adamw
+  weight_decay: 0.01
+  schedule: linear
+  warmup_fraction: 0.0
+  max_grad_norm: 1.0
+  max_sequence_length: 1024
+  balanced_sampling: true
+  save_steps: 500
+  log_steps: 10
+  output_dir: bbox_vla/workspace/runs/qwen2vl_7b_ar_polyp_sft/seed42
+  wandb:
+    enabled: false
+    entity: somestone
+    project: lerobot
+    group: bbox_vla_task4_polyp_ar
+
+generation:
+  do_sample: false
+  num_beams: 1
+  max_new_tokens: 24
+  # Score Y vs N first, then condition on Y to obtain a box candidate for AP.
+  force_positive_bbox_candidate: true
+
+evaluation:
+  max_false_positives_per_100_negative_frames: 5.0
+  threshold_grid_size: 1001
+  bootstrap_samples: 2000
+  bootstrap_seed: 42
+  latency_limit_ms: 66.7

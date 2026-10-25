@@ -12,10 +12,28 @@ __pycache__/
 
 inference_results/
 lerobot_dataset/
-data/
-datasets/
-models/
-checkpoints/
+/data/
+/datasets/
+/models/
+/checkpoints/
+
+# Research payloads are external; nested Python data/models modules are source.
+**/raw_data/
+**/local_datasets/
+**/workspace/
+**/artifacts/
+**/archive/
+**/.venv/
+**/.tools/
+**/.pytest_cache/
+**/.ruff_cache/
+.DS_Store
+build/
+dist/
+*.egg-info/
+*.xml
+*.pid
+*.tmp
 
 *.mp4
 *.npz
@@ -24,3 +42,26 @@ checkpoints/
 *.pt
 *.pth
 *.ckpt
+*.npy
+*.h5
+*.hdf5
+*.bin
+*.pkl
+*.pickle
+*.zip
+*.tar
+*.tar.gz
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.mov
+*.avi
+*.jsonl
+
+# Local regression tests and internal project notes are not part of the release.
+/gi_vla/tests/
+/gi_vla/docs/
+/gi_vla/conftest.py
+/gi_vla/requirements-test.txt

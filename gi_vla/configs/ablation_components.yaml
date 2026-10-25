@@ -1,0 +1,123 @@
+schema_version: 1
+study_id: e03_shared_ablation_v1
+
+backbone:
+  checkpoint: Jason-Doldol-Research/task1_5_100_groot_n17_relact_005000
+  revision: efbfbb0b4d13bf482734ead3d77d1ad2ceceac1b
+  expected_model_sha256: b3c2053f6918d6d7223407eff30dfdfcde3335fb39936c160637e29ab8db922f
+  feature_source: qwen3_vl_visual_block_11_output_pre_merger
+  feature_capture: same_action_forward
+  camera_key: observation.images.cam_low
+  camera_order:
+    - observation.images.cam_high
+    - observation.images.cam_low
+    - observation.images.cam_left_wrist
+    - observation.images.cam_right_wrist
+  feature_dim: 1024
+  grid_size: [16, 16]
+  visual_parameters_trainable: false
+
+data:
+  prompt_seed: 42
+  train_manifest: bbox_vla/annotation/candidate_c/scenario_static_v1/frame_manifest.jsonl
+  train_manifest_sha256: 4760fac7c353710008575282b1635d8bd7e0fee08bedaf5c54241c478e32e161
+  validation_manifest: bbox_vla/annotation/candidate_c/scenario_static_v1_final/validation_manifest.jsonl
+  validation_manifest_sha256: 38c7737cf04f34b6b06da6963667448323236b14ff03c3610400524a0f4d6fbf
+  test_manifest: bbox_vla/annotation/candidate_c/scenario_static_v1_final/test_manifest.jsonl
+  test_manifest_sha256: 26025455dfcd18cecc02b4881303ce6bd1809ef7df97381218ae485358d7ca97
+  expected_counts:
+    train: 5687
+    validation: 5086
+    test: 6292
+  original_size: [640, 480]
+  detector_size: [256, 256]
+  target_geometry: groot_n17_crop
+
+feature_cache:
+  train_root: bbox_vla/workspace/groot_n17_e02_e03_scenario_static_v1/runs/scenario_static_v1_seed42/cache/full
+  train_manifest_sha256: 9ee2857927adf2287f6b1d3d5657f24b26f47c7789569fe64d7f6732262d5e58
+  evaluation_root: bbox_vla/workspace/groot_n17_e02_e03_scenario_static_v1/evaluations/scenario_static_v1_seed42/cache/actual_prompt
+  evaluation_manifest_sha256: 17e5a7bf1354af873bbe9de7abe501b090f0a193856075e01846c8d4bd4537f6
+  require_action_parity: true
+  tensor_dtype: bfloat16
+
+head:
+  hidden_dim: 256
+  decoder_layers: 3
+  attention_heads: 8
+  feedforward_dim: 1024
+  dropout: 0.1
+  location_queries: 4
+  smoke_variant: location_first
+
+training:
+  seed: 42
+  batch_size: 64
+  evaluation_batch_size: 256
+  samples_per_epoch: 5687
+  weight_decay: 1.0e-4
+  warmup_fraction: 0.05
+  gradient_clip_norm: 1.0
+  validate_every_epochs: 5
+  variants:
+    single_query:
+      description: single learned query
+      paper_label: Single-query baseline
+      head_kind: one_query
+      num_queries: 1
+      focal_presence: true
+      heatmap_weight: 0.0
+      epochs: 50
+      learning_rate: 3.0e-5
+      sampler: scenario_episode_balanced
+      use_box_weights: true
+    learned_4query:
+      description: four learned queries without location prior
+      paper_label: Learned 4-query
+      head_kind: learned_queries
+      num_queries: 4
+      focal_presence: true
+      heatmap_weight: 0.0
+      epochs: 50
+      learning_rate: 3.0e-5
+      sampler: scenario_episode_balanced
+      use_box_weights: true
+    location_first:
+      description: four location-first queries
+      paper_label: Location-first
+      head_kind: location_first
+      num_queries: 4
+      focal_presence: true
+      heatmap_weight: 1.0
+      epochs: 50
+      learning_rate: 3.0e-5
+      sampler: scenario_episode_balanced
+      use_box_weights: true
+    full:
+      description: location-first with hard-positive fine-tuning
+      paper_label: Full Ours
+      head_kind: location_first
+      num_queries: 4
+      focal_presence: true
+      heatmap_weight: 1.0
+      epochs: 20
+      learning_rate: 1.0e-5
+      sampler: size_location_balanced
+      use_box_weights: true
+      initialize_from: location_first
+
+loss:
+  presence: 1.0
+  l1: 5.0
+  giou: 2.0
+  heatmap: 1.0
+
+evaluation:
+  max_fp_per_100_per_negative_source: 5.0
+  detector_fps: 5.0
+  selection: maximize_mean_iou_then_ap50_95_under_each_source_fp5
+  selection_split: validation
+  final_split: internal_test
+
+workspace:
+  root: bbox_vla/workspace/e03_shared_ablation_v1

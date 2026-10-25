@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "endo-bbox-vla"
+version = "0.2.0"
+requires-python = ">=3.12"
+description = "Consolidated endoscopic polyp detection research"
+readme = "README.md"
+dependencies = ["numpy>=1.26", "PyYAML>=6", "Pillow>=10.2", "torch>=2.5", "torchvision>=0.20", "scipy>=1.15", "safetensors>=0.5"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["endo_bbox_vla*", "comparisons*", "annotation*"]
+[tool.setuptools.package-data]
+annotation = ["web/*.html", "web/*.js", "web/*.css"]
+
+[tool.setuptools.data-files]
+"share/endo_bbox_vla/configs" = ["configs/ablation_components.yaml", "configs/ablation_query_count.yaml", "configs/baseline_single_query_runtime.yaml", "configs/feature_comparison.yaml", "configs/feature_comparison_qc.yaml", "configs/high_resolution_upper_bound.yaml", "configs/ours.yaml", "configs/ours_runtime.yaml", "configs/standalone_detectors.yaml", "configs/temporal_smoke.yaml"]
+"share/endo_bbox_vla/configs/comparisons" = ["configs/comparisons/endovla_bbox_action_sft.yaml", "configs/comparisons/endovla_bbox_action_sft_low_memory.yaml", "configs/comparisons/endovla_bbox_sft.yaml", "configs/comparisons/endovla_polyp_sft.yaml", "configs/comparisons/endovla_scenario_sft.yaml"]

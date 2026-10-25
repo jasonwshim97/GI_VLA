@@ -1,0 +1,87 @@
+schema_version: 1
+kind: groot_n17_e03_polyp_online_eval_bundle
+
+base_policy:
+  repo_id: Jason-Doldol-Research/task1_5_100_groot_n17_relact_005000
+  revision: efbfbb0b4d13bf482734ead3d77d1ad2ceceac1b
+  model_filename: model.safetensors
+  model_bytes: 12576215296
+  model_sha256: b3c2053f6918d6d7223407eff30dfdfcde3335fb39936c160637e29ab8db922f
+  lerobot_commit: 7e241bd630a3719a56157a497ce5d08f244784f1
+  action_chunk_size: 40
+  action_dim: 16
+  use_relative_actions: true
+
+processor:
+  directory: processor
+  upstream_repo: nvidia/Cosmos-Reason2-2B
+  upstream_revision: 9ce19a195e423419c349abfc86fd07178b230561
+  files_sha256:
+    config.json: bec4b3d446efa05807365c9e1cec03ac590836879d02f3a6da879971154bdd3b
+    merges.txt: 599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3
+    preprocessor_config.json: 27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516
+    tokenizer.json: a5d85b6dcc535e6b93115a9ef287e6132fdbf30270da6218194ba742261173c7
+    tokenizer_config.json: c2da771801886ad9ae98181793ffd3dfb7f1af30f6f7c6a4e15d7dbba52e2399
+    video_preprocessor_config.json: 7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13
+    vocab.json: ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910
+
+detector:
+  filename: shared_e03_c_best.pt
+  sha256: 8458c303733d5640f30fc3debb9a4c2616b49bd0eecf8f38a40f909931ce1227
+  metadata_sha256: b30d3bda7e8993ceaf593f9602b6ffa54359a0276465d6f1362666faed46b550
+  experiment_id: e03_shared_location_c
+  variant: c
+  feature_level: e03
+  feature_source: qwen3_vl_visual_block_11_output_pre_merger
+  camera_key: observation.images.cam_low
+  policy_camera_order:
+    - observation.images.cam_high
+    - observation.images.cam_low
+    - observation.images.cam_left_wrist
+    - observation.images.cam_right_wrist
+  threshold: 0.1787109375
+  dataset_revision: b0f4057ee10d19321454d70cfda40e570537b86c
+  training_manifest_sha256: 4760fac7c353710008575282b1635d8bd7e0fee08bedaf5c54241c478e32e161
+  training_cache_manifest_sha256: 9ee2857927adf2287f6b1d3d5657f24b26f47c7789569fe64d7f6732262d5e58
+  validation_cache_manifest_sha256: 17e5a7bf1354af873bbe9de7abe501b090f0a193856075e01846c8d4bd4537f6
+  action_parity_sha256: 16267bb14c62a25c4901eba558205bd90f758bf0d7d817cafca78295db1c22ba
+  training_config_sha256: d4a20812b0b14d069711ab61eafdf944b50c8c9d455941c7abcacf90a7e3185f
+  seed: 42
+  architecture:
+    type: location_first_four_query
+    input_dim: 1024
+    hidden_dim: 256
+    decoder_layers: 3
+    attention_heads: 8
+    feedforward_dim: 1024
+    grid_size: [16, 16]
+    location_queries: 4
+    dropout: 0.1
+
+event_rule:
+  status: provisional_validation_selected
+  name: kofn_10_15
+  hits_required: 10
+  window_size: 15
+  require_full_window: true
+  cadence_hz: 30.0
+  bbox_iou_stability: null
+  selection_split: Task1 validation episodes 150-169
+  internal_test_used_for_selection: false
+  validation_negative_episodes: 20
+  validation_frames: 20226
+  validation_false_trigger_episodes: 7
+  validation_false_bursts: 20
+  task4_diagnostic_episodes: 5
+  task4_diagnostic_triggered: 5
+  task4_diagnostic_p95_delay_seconds: 0.4666666666666667
+  selection_analysis_sha256: 80fd41001dc257e0a5815685f62c5e4abb6b8d3a4eb84b5ad0b883d9b1c90ca9
+
+runtime:
+  original_image_size: [640, 480]
+  detector_input_size: [256, 256]
+  color_order: rgb
+  detector_only_mode: fresh_backbone_forward
+  combined_mode: capture_e03_from_action_forward
+  detector_output_coordinates: original_pixel_top_left_xyxy
+  clinical_use: false

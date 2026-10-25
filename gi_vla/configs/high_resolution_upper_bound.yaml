@@ -1,0 +1,97 @@
+schema_version: 1
+study_id: e03_hr_abcd_v1
+
+backbone:
+  checkpoint: Jason-Doldol-Research/task1_5_100_groot_n17_relact_005000
+  revision: efbfbb0b4d13bf482734ead3d77d1ad2ceceac1b
+  local_checkpoint: bbox_vla/raw_data/pretrained/task1_5_100_groot_n17_relact_005000
+  model_file: bbox_vla/raw_data/pretrained/task1_5_100_groot_n17_relact_005000/model.safetensors
+  expected_model_bytes: 12576215296
+  expected_model_sha256: b3c2053f6918d6d7223407eff30dfdfcde3335fb39936c160637e29ab8db922f
+  processor_snapshot: /root/.cache/huggingface/hub/models--nvidia--Cosmos-Reason2-2B/snapshots/9ce19a195e423419c349abfc86fd07178b230561
+  visual_block_stop: 11
+  feature_dim: 1024
+
+data:
+  train_manifest: bbox_vla/annotation/candidate_c/scenario_static_v1/frame_manifest.jsonl
+  validation_manifest: bbox_vla/annotation/candidate_c/scenario_static_v1_final/validation_manifest.jsonl
+  test_manifest: bbox_vla/annotation/candidate_c/scenario_static_v1_final/test_manifest.jsonl
+  verified_cache_root: bbox_vla/ar_qwen/artifacts/cache/e03_4cam_cont16_v1
+  camera_key: observation.images.cam_low
+  original_size: [640, 480]
+  detector_size: [512, 384]
+
+feature_cache:
+  root: bbox_vla/workspace/e03_hr_abcd_v1/features
+  extraction_batch_size: 8
+  shard_size: 128
+  dtype: bfloat16
+
+head:
+  hidden_dim: 256
+  decoder_layers: 3
+  attention_heads: 8
+  feedforward_dim: 1024
+  dropout: 0.1
+  location_queries: 4
+
+training:
+  seed: 42
+  batch_size: 64
+  samples_per_epoch: 5687
+  weight_decay: 1.0e-4
+  warmup_fraction: 0.05
+  gradient_clip_norm: 1.0
+  validate_every_epochs: 5
+  variants:
+    a:
+      head_kind: one_query
+      epochs: 50
+      learning_rate: 3.0e-5
+      sampler: scenario_episode_balanced
+      focal_presence: false
+      heatmap_weight: 0.0
+    b:
+      head_kind: location_first
+      epochs: 50
+      learning_rate: 3.0e-5
+      sampler: scenario_episode_balanced
+      focal_presence: true
+      heatmap_weight: 1.0
+    c:
+      head_kind: location_first
+      epochs: 20
+      learning_rate: 1.0e-5
+      sampler: size_location_balanced
+      initialize_from: b
+      focal_presence: true
+      heatmap_weight: 1.0
+    d:
+      head_kind: location_first
+      epochs: 3
+      head_learning_rate: 1.0e-5
+      lora_learning_rate: 1.0e-5
+      batch_size: 8
+      gradient_accumulation: 4
+      sampler: size_location_balanced
+      initialize_from: c
+      focal_presence: true
+      heatmap_weight: 1.0
+      lora:
+        rank: 8
+        alpha: 16
+        dropout: 0.05
+        blocks: [8, 9, 10, 11]
+
+loss:
+  presence: 1.0
+  l1: 5.0
+  giou: 2.0
+
+evaluation:
+  max_fp_per_100_per_negative_source: 5.0
+  detector_fps: 5.0
+  selection: maximize_mean_iou_then_ap50_95_under_each_source_fp5
+
+workspace:
+  root: bbox_vla/workspace/e03_hr_abcd_v1
